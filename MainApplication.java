@@ -62,10 +62,7 @@ public class MainApplication extends JFrame implements Navigable {
             progress.load();
         }
         catch(Exception e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    e.getMessage()
-            );
+            e.printStackTrace();
         }
 
         createScreens();
@@ -196,11 +193,7 @@ public class MainApplication extends JFrame implements Navigable {
                     progress.save();
                 }
                 catch(Exception ex) {
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            ex.getMessage()
-                    );
+                    ex.printStackTrace();
                 }
 
                 String message = quizManager.getMotivationalMessage();
