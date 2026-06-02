@@ -13,7 +13,6 @@ public class UserProgress implements Storable {
     private int stars;
 
     private ArrayList<Integer> leaderboard;
-
     private ArrayList<Reward> rewards;
 
     private static final String FILE_PATH =
@@ -41,15 +40,15 @@ public class UserProgress implements Storable {
 
         rewards.add(new StarPoints(stars));
 
-        if(scorePercent >= 80) {
+        if (scorePercent >= 80) {
             rewards.add(
-                new Badge("Education Champion")
+                    new Badge("Education Champion")
             );
         }
 
-        if(scorePercent == 100) {
+        if (scorePercent == 100) {
             rewards.add(
-                new Badge("Perfect Score")
+                    new Badge("Perfect Score")
             );
         }
 
@@ -88,19 +87,28 @@ public class UserProgress implements Storable {
 
             File folder = new File("data");
 
-            if(!folder.exists()) {
+            if (!folder.exists()) {
                 folder.mkdir();
             }
 
             PrintWriter writer =
                     new PrintWriter(
-                            new FileWriter(FILE_PATH,true));
+                            new FileWriter(FILE_PATH)
+                    );
 
+            // Save current progress
             writer.println(latestScore);
+            writer.println(points);
+            writer.println(stars);
+
+            // Save leaderboard scores
+            for (Integer score : leaderboard) {
+                writer.println("SCORE:" + score);
+            }
 
             writer.close();
 
-        } catch(IOException e) {
+        } catch (IOException e) {
 
             throw new ScoreFileException(
                     "Unable to save score."
@@ -112,34 +120,82 @@ public class UserProgress implements Storable {
     public void load() throws Exception {
 
         leaderboard.clear();
+        rewards.clear();
 
         try {
 
             File file = new File(FILE_PATH);
 
-            if(!file.exists()) {
+            if (!file.exists()) {
                 file.createNewFile();
+                return;
             }
 
             Scanner scan =
                     new Scanner(file);
 
-            while(scan.hasNextLine()) {
+            if (scan.hasNextLine()) {
+                latestScore =
+                        Integer.parseInt(
+                                scan.nextLine()
+                        );
+            }
+
+            if (scan.hasNextLine()) {
+                points =
+                        Integer.parseInt(
+                                scan.nextLine()
+                        );
+            }
+
+            if (scan.hasNextLine()) {
+                stars =
+                        Integer.parseInt(
+                                scan.nextLine()
+                        );
+            }
+
+            while (scan.hasNextLine()) {
 
                 String line =
                         scan.nextLine();
 
-                if(!line.trim().isEmpty()) {
+                if (line.startsWith("SCORE:")) {
 
                     leaderboard.add(
-                            Integer.parseInt(line)
+                            Integer.parseInt(
+                                    line.substring(6)
+                            )
                     );
                 }
             }
 
             scan.close();
 
-        } catch(Exception e) {
+            // Rebuild rewards after loading
+            rewards.add(
+                    new StarPoints(stars)
+            );
+
+            if (latestScore >= 80) {
+
+                rewards.add(
+                        new Badge(
+                                "Education Champion"
+                        )
+                );
+            }
+
+            if (latestScore == 100) {
+
+                rewards.add(
+                        new Badge(
+                                "Perfect Score"
+                        )
+                );
+            }
+
+        } catch (Exception e) {
 
             throw new ScoreFileException(
                     "Unable to load score file."
