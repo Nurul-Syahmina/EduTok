@@ -8,17 +8,39 @@ import java.awt.*;
 import edutok.person2.QuizManager;
 import edutok.person2.QuizQuestion;
 import edutok.person2.MultipleChoiceQuestion;
+import edutok.person3.LessonCatalog;
+import edutok.person3.Learnable;
+import edutok.person4.UserProgress;
+import edutok.person4.Reward;
 
+// Main application class
 public class MainApplication extends JFrame implements Navigable {
 
+    // Layout manager for switching between screens
     private CardLayout cardLayout;
+
+    // Main container that holds all screens
     private JPanel mainPanel;
 
+    // Module objects from other team members
     private QuizManager quizManager;
+    private LessonCatalog lessonCatalog;
+    private UserProgress progress;
 
+    // Quiz screen components
     private JTextArea questionArea;
     private JTextField answerField;
 
+    // Learning screen components
+    private JLabel lessonTitleLabel;
+    private JTextArea lessonBodyArea;
+    private JLabel lessonImageLabel;
+
+    // Progress and leaderboard components
+    private JTextArea progressArea;
+    private JTextArea leaderboardArea;
+
+    // Constructor
     public MainApplication() {
 
         setTitle("EduTok");
@@ -32,6 +54,20 @@ public class MainApplication extends JFrame implements Navigable {
         quizManager = new QuizManager();
         quizManager.loadQuestions();
 
+        lessonCatalog = new LessonCatalog();
+
+        progress = new UserProgress();
+
+        try {
+            progress.load();
+        }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    e.getMessage()
+            );
+        }
+
         createScreens();
 
         add(mainPanel);
@@ -39,13 +75,18 @@ public class MainApplication extends JFrame implements Navigable {
         setVisible(true);
     }
 
+
+    /*
+     * Creates all application screens and
+     * registers them with CardLayout.
+     */
     private void createScreens() {
 
         JPanel homePanel = createHomePanel();
-        JPanel learnPanel = createSimplePanel("Learning Module");
+        JPanel learnPanel = createLearnPanel();
         JPanel quizPanel = createQuizPanel();
-        JPanel progressPanel = createSimplePanel("Progress Module");
-        JPanel leaderboardPanel = createSimplePanel("Leaderboard Module");
+        JPanel progressPanel = createProgressPanel();
+        JPanel leaderboardPanel = createLeaderboardPanel();
 
         mainPanel.add(homePanel, "home");
         mainPanel.add(learnPanel, "learn");
@@ -54,6 +95,10 @@ public class MainApplication extends JFrame implements Navigable {
         mainPanel.add(leaderboardPanel, "leaderboard");
     }
 
+    /*
+     * Creates the home screen containing
+     * navigation buttons to all modules.
+     */
     private JPanel createHomePanel() {
 
         JPanel panel = new JPanel();
@@ -67,10 +112,29 @@ public class MainApplication extends JFrame implements Navigable {
         JButton leaderboardBtn = new JButton("Leaderboard");
         JButton exitBtn = new JButton("Exit");
 
-        learnBtn.addActionListener(e -> showScreen("learn"));
+        // Navigate to Learning Module
+        learnBtn.addActionListener(e -> {
+            lessonCatalog.resetToFirst();
+            updateLessonDisplay();
+            showScreen("learn");
+        });
+
+        // Navigate to Quiz Module
         quizBtn.addActionListener(e -> showScreen("quiz"));
-        progressBtn.addActionListener(e -> showScreen("progress"));
-        leaderboardBtn.addActionListener(e -> showScreen("leaderboard"));
+
+        // Navigate to Progress Module
+        progressBtn.addActionListener(e -> {
+            updateProgressDisplay();
+            showScreen("progress");
+        });
+
+        // Navigate to Leaderboard Module
+        leaderboardBtn.addActionListener(e -> {
+            updateLeaderboardDisplay();
+            showScreen("leaderboard");
+        });
+
+        // Exit application
         exitBtn.addActionListener(e -> System.exit(0));
 
         panel.add(title);
@@ -83,33 +147,21 @@ public class MainApplication extends JFrame implements Navigable {
         return panel;
     }
 
+    /*
+     * Creates the quiz screen.
+     * Displays questions and allows users
+     * to submit answers.
+     */
     private JPanel createQuizPanel() {
 
         JPanel panel = new JPanel(new BorderLayout());
 
-        QuizQuestion q = quizManager.getCurrentQuestion();
-
-        String questionText = q.getPrompt();
-
-        // If it's a Multiple Choice question,
-        // display the options too
-        if (q instanceof MultipleChoiceQuestion) {
-
-            MultipleChoiceQuestion mcq =
-                    (MultipleChoiceQuestion) q;
-
-            String[] options = mcq.getOptions();
-
-            for (String option : options) {
-                questionText += "\n" + option;
-            }
-        }
-
-        questionArea = new JTextArea(questionText);
+        questionArea = new JTextArea();
 
         questionArea.setEditable(false);
         questionArea.setLineWrap(true);
         questionArea.setWrapStyleWord(true);
+        updateQuestionDisplay();
 
         answerField = new JTextField();
 
@@ -121,8 +173,8 @@ public class MainApplication extends JFrame implements Navigable {
 
         submitButton.addActionListener(e -> {
 
-            String answer =
-                    answerField.getText();
+            // Get answer entered by user
+            String answer = answerField.getText().trim();
 
             quizManager.submitAnswer(answer);
 
@@ -136,11 +188,22 @@ public class MainApplication extends JFrame implements Navigable {
 
             } else {
 
-                int score =
-                        quizManager.getScorePercent();
+                int score = quizManager.getScorePercent();
 
-                String message =
-                        quizManager.getMotivationalMessage();
+                progress.recordQuiz(score);
+
+                try {
+                    progress.save();
+                }
+                catch(Exception ex) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            ex.getMessage()
+                    );
+                }
+
+                String message = quizManager.getMotivationalMessage();
 
                 JOptionPane.showMessageDialog(
                         this,
@@ -173,6 +236,10 @@ public class MainApplication extends JFrame implements Navigable {
         return panel;
     }
 
+    /*
+     * Updates the quiz display with the
+     * current question and answer choices.
+     */
     private void updateQuestionDisplay() {
 
         QuizQuestion q = quizManager.getCurrentQuestion();
@@ -199,27 +266,225 @@ public class MainApplication extends JFrame implements Navigable {
         questionArea.setText(questionText);
     }
 
-    private JPanel createSimplePanel(String text) {
+    /*
+     * Creates the learning screen with
+     * lesson content, image, and navigation buttons.
+     */
+    private JPanel createLearnPanel() {
 
         JPanel panel = new JPanel(new BorderLayout());
 
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        lessonTitleLabel = new JLabel("", SwingConstants.CENTER);
 
+        lessonBodyArea = new JTextArea();
+        lessonBodyArea.setEditable(false);
+        lessonBodyArea.setLineWrap(true);
+        lessonBodyArea.setWrapStyleWord(true);
+
+        lessonImageLabel = new JLabel();
+
+        JButton prevBtn = new JButton("Previous");
+        JButton nextBtn = new JButton("Next");
         JButton backBtn = new JButton("Back");
+
+        prevBtn.addActionListener(e -> {
+
+            if (lessonCatalog.hasPrevious()) {
+                lessonCatalog.previousPage();
+                updateLessonDisplay();
+            }
+        });
+
+        nextBtn.addActionListener(e -> {
+
+            if (lessonCatalog.hasNext()) {
+                lessonCatalog.nextPage();
+                updateLessonDisplay();
+            }
+        });
 
         backBtn.addActionListener(e -> showScreen("home"));
 
-        panel.add(label, BorderLayout.CENTER);
-        panel.add(backBtn, BorderLayout.SOUTH);
+        JPanel buttonPanel = new JPanel();
+
+        buttonPanel.add(prevBtn);
+        buttonPanel.add(nextBtn);
+        buttonPanel.add(backBtn);
+
+        panel.add(lessonTitleLabel,BorderLayout.NORTH);
+
+        panel.add(new JScrollPane(lessonBodyArea),BorderLayout.CENTER);
+
+        panel.add(buttonPanel,BorderLayout.SOUTH);
+
+        panel.add(lessonImageLabel, BorderLayout.EAST);
+
+        updateLessonDisplay();
 
         return panel;
     }
 
+    /*
+     * Updates lesson title, content,
+     * and image based on the current lesson.
+     */
+    private void updateLessonDisplay() {
+
+        Learnable lesson = lessonCatalog.getCurrentLesson();
+
+        lessonTitleLabel.setText(
+                "Page "
+                + lessonCatalog.getCurrentPageNumber()
+                + " / "
+                + lessonCatalog.getTotalLessons()
+                + " : "
+                + lesson.getTitle()
+        );
+
+        lessonBodyArea.setText(lesson.getBody());
+
+        ImageIcon image = lesson.getImage();
+
+        if (image != null) {
+            lessonImageLabel.setIcon(image);
+        } else {
+            lessonImageLabel.setIcon(null);
+        }
+    }
+
+    /*
+     * Creates the progress screen displaying
+     * score, points, stars, and rewards.
+     */
+    private JPanel createProgressPanel() {
+
+        JPanel panel = new JPanel(new BorderLayout());
+
+        progressArea = new JTextArea();
+
+        progressArea.setEditable(false);
+
+        updateProgressDisplay();
+
+        JButton backBtn =
+                new JButton("Back");
+
+        backBtn.addActionListener(
+                e -> showScreen("home")
+        );
+
+        panel.add(
+                new JScrollPane(progressArea),
+                BorderLayout.CENTER
+        );
+
+        panel.add(
+                backBtn,
+                BorderLayout.SOUTH
+        );
+
+        return panel;
+    }
+
+    /*
+     * Refreshes progress information
+     * from UserProgress.
+     */
+    private void updateProgressDisplay() {
+
+        String text =
+                "Latest Score: "
+                + progress.getLatestScore()
+                + "\n\nPoints: "
+                + progress.getPoints()
+                + "\n\nStars: "
+                + progress.getStars()
+                + "\n\nRewards:\n";
+
+        for (Reward reward :
+                progress.getRewards()) {
+
+            text += reward.getRewardInfo()
+                    + "\n";
+        }
+
+        progressArea.setText(text);
+    }
+
+    /*
+     * Creates the leaderboard screen showing
+     * saved quiz scores.
+     */
+    private JPanel createLeaderboardPanel() {
+
+        JPanel panel =
+                new JPanel(new BorderLayout());
+
+        leaderboardArea = new JTextArea();
+
+        leaderboardArea.setEditable(false);
+
+        updateLeaderboardDisplay();
+
+        JButton backBtn =
+                new JButton("Back");
+
+        backBtn.addActionListener(
+                e -> showScreen("home")
+        );
+
+        panel.add(
+                new JScrollPane(leaderboardArea),
+                BorderLayout.CENTER
+        );
+
+        panel.add(
+                backBtn,
+                BorderLayout.SOUTH
+        );
+
+        return panel;
+    }
+
+    /*
+     * Updates leaderboard rankings from
+     * stored quiz scores.
+     */
+    private void updateLeaderboardDisplay() {
+
+        String text =
+                "Leaderboard\n\n";
+
+        int rank = 1;
+
+        for (Integer score :
+                progress.getLeaderboard()) {
+
+            text += rank
+                    + ". "
+                    + score
+                    + "\n";
+
+            rank++;
+        }
+
+        leaderboardArea.setText(text);
+    }
+
+    // Displays a screen using its screen ID.
     @Override
     public void showScreen(String screenId) {
         cardLayout.show(mainPanel, screenId);
     }
 
+    /*
+     * Displays a screen using its numeric index.
+     * 0 = Home
+     * 1 = Learn
+     * 2 = Quiz
+     * 3 = Progress
+     * 4 = Leaderboard
+     */
     @Override
     public void showScreen(int screenIndex) {
 
@@ -250,6 +515,7 @@ public class MainApplication extends JFrame implements Navigable {
         }
     }
 
+    // Application entry point
     public static void main(String[] args) {
         new MainApplication();
     }
