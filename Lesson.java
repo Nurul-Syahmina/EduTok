@@ -13,7 +13,7 @@ import java.net.URL;
  * Each Lesson holds a title, body text, page number, and an 
  * image loaded from the resources/images/ folder.
  */
-public class Lesson implements Learanble {
+public class Lesson implements Learnable {
     private String title;
     private String body;
     private int pageNumber;
