@@ -12,6 +12,7 @@ import edutok.person3.LessonCatalog;
 import edutok.person3.Learnable;
 import edutok.person4.UserProgress;
 import edutok.person4.Reward;
+import edutok.person2.TrueFalseQuestion;
 
 // Main application class
 public class MainApplication extends JFrame implements Navigable {
@@ -171,7 +172,40 @@ public class MainApplication extends JFrame implements Navigable {
         submitButton.addActionListener(e -> {
 
             // Get answer entered by user
-            String answer = answerField.getText().trim();
+            String answer = answerField.getText().trim().toLowerCase();
+
+            QuizQuestion q = quizManager.getCurrentQuestion();
+
+            // Multiple Choice validation
+            if (q instanceof MultipleChoiceQuestion) {
+
+                if (!answer.matches("[abcd]")) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Please enter A, B, C, or D."
+                    );
+
+                    return;
+                }
+            }
+
+            // True/False validation
+            if (q instanceof TrueFalseQuestion) {
+
+                if (!(answer.equals("true")
+                        || answer.equals("false")
+                        || answer.equals("t")
+                        || answer.equals("f"))) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Please enter True or False."
+                    );
+
+                    return;
+                }
+            }
 
             quizManager.submitAnswer(answer);
 
