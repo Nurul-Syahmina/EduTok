@@ -174,6 +174,14 @@ public class MainApplication extends JFrame implements Navigable {
             // Get answer entered by user
             String answer = answerField.getText().trim().toLowerCase();
 
+            // Empty answer validation
+            if (answer.isEmpty()) {
+
+                JOptionPane.showMessageDialog(this,"Please enter an answer.");
+
+                return;
+            }
+
             QuizQuestion q = quizManager.getCurrentQuestion();
 
             // Multiple Choice validation
