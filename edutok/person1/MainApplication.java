@@ -381,7 +381,9 @@ public class MainApplication extends JFrame implements Navigable {
         ImageIcon image = lesson.getImage();
 
         if (image != null) {
-            lessonImageLabel.setIcon(image);
+            
+            Image scaledImage = image.getImage().getScaledInstance(150,150,Image.SCALE_SMOOTH);
+            lessonImageLabel.setIcon(new ImageIcon(scaledImage));
         } else {
             lessonImageLabel.setIcon(null);
         }
@@ -408,15 +410,9 @@ public class MainApplication extends JFrame implements Navigable {
                 e -> showScreen("home")
         );
 
-        panel.add(
-                new JScrollPane(progressArea),
-                BorderLayout.CENTER
-        );
+        panel.add(new JScrollPane(progressArea),BorderLayout.CENTER);
 
-        panel.add(
-                backBtn,
-                BorderLayout.SOUTH
-        );
+        panel.add(backBtn,BorderLayout.SOUTH);
 
         return panel;
     }
