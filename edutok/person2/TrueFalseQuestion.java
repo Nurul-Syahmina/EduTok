@@ -23,6 +23,6 @@ public class TrueFalseQuestion extends AbstractQuestion {
 
     @Override
     public String getType() {
-        return "TRUE_FALSE";
+        return "True/False";
     }
 }

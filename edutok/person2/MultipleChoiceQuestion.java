@@ -22,6 +22,6 @@ public class MultipleChoiceQuestion extends AbstractQuestion {
 
     @Override
     public String getType() {
-        return "MULTIPLE_CHOICE";
+        return "MCQ";
     }
 }
